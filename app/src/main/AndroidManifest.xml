@@ -81,6 +81,9 @@
             android:name=".activities.AlexandreActivity"
             android:label="@string/title_activity_alexandre"></activity>
         <activity
+            android:name=".activities.FlorianActivity"
+            android:label="@string/title_activity_florian"></activity>
+        <activity
             android:name=".activities.DtcActivity"
             android:label="@string/title_activity_dtc"></activity>
         <activity

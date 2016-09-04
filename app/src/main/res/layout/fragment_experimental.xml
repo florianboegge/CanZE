@@ -208,8 +208,8 @@
             android:layout_marginLeft="4dp"
             android:layout_marginRight="4dp"
             android:layout_marginBottom="4dp"
-            android:text="---"
-            android:id="@+id/notAffected1"
+            android:text="PLAYGROUND (FLORIAN)"
+            android:id="@+id/buttonPgFb"
             android:layout_column="0" />
 
         <Button

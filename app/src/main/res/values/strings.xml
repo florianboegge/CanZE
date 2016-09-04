@@ -17,6 +17,7 @@
     <string name="title_activity_stats">StatsActivity</string>
     <string name="title_activity_harm">Harm\'s playground</string>
     <string name="title_activity_alexandre">Alexandre\'s playground</string>
+    <string name="title_activity_florian">Florian\'s playground</string>
     <string name="title_activity_battery">Battery</string>
     <string name="title_activity_dtc">Diagnostic Trouble Codes</string>
     <string name="title_activity_heatmap_bat">Compartment heatmap</string>

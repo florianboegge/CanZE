@@ -936,8 +936,8 @@ public class Fields implements MessageListener {
 //+"0x4f8,24,39,0.01,0,2,,,,1f\n" // Speed on Display
                         +"0x534,32,40,1,40,0,°C,,,5\n" // Temp out
                         +"0x5d7,0,15,0.01,0,2,km/h,,,1f\n" // Speed
-//+"0x5d7,16,43,0.01,0,2,km,,,1f\n" // Odometer
-//+"0x5d7,50,54,0.04,0,2,cm,,,1f\n" // Fine distance
+                        +"0x5d7,16,43,0.01,0,2,km,,,1f\n" // Odometer
+                        +"0x5d7,50,54,0.04,0,2,cm,,,1f\n" // Fine distance
                         +"0x5da,0,7,1,40,0,ºC,,,5\n" // Water temperature
 //+"0x5de,1,1,1,0,0,,,,1f\n" // Right Indicator
 //+"0x5de,2,2,1,0,0,,,,1f\n" // Left Indicator
