@@ -1202,8 +1202,8 @@ public class Fields implements MessageListener {
                         +"0x7b6,0,23,1,0,0,,0x19023b,0x5902ff,1f\n" // Query DTC
 //+"0x7bb,192,207,0.01,0,2,kW,0x2101,0x6101,5\n" // Maximum battery input power
 //+"0x7bb,208,223,0.01,0,2,kW,0x2101,0x6101,5\n" // Maximum battery output power
-//+"0x7bb,348,367,0.0001,0,4,Ah,0x2101,0x6101,5\n" // Ah of the battery
-//+"0x7bb,316,335,0.0001,0,4,%,0x2101,0x6101,5\n" // Real State of Charge
+                        +"0x7bb,348,367,0.0001,0,4,Ah,0x2101,0x6101,5\n" // Ah of the battery
+                        +"0x7bb,316,335,0.0001,0,4,%,0x2101,0x6101,5\n" // Real State of Charge
                         +"0x7bb,336,351,0.01,0,2,kW,0x2101,0x6101,2\n" // Maximum battery input power
                         +"0x7bb,56,71,10,0,0,°C,0x2103,0x6103,5\n" // Mean battery compartment temp
 //+"0x7bb,104,119,1,0,0,mV,0x2103,0x6103,5\n" // Highest cell voltage

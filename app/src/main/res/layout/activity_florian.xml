@@ -173,6 +173,14 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="-"
+                    android:id="@+id/textDrivenTime"
+                    android:textColor="#ffffff"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-"
                     android:id="@+id/textUsedEnergySinceStart"
                     android:textColor="#ffffff"
                     android:layout_marginBottom="12dp" />
@@ -212,6 +220,14 @@
                     android:layout_height="wrap_content"
                     android:text="-"
                     android:id="@+id/textDrivenDistanceSinceReset"
+                    android:textColor="#ffffff"
+                    android:layout_marginBottom="12dp" />
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="-"
+                    android:id="@+id/textDrivenTimeSinceReset"
                     android:textColor="#ffffff"
                     android:layout_marginBottom="12dp" />
 

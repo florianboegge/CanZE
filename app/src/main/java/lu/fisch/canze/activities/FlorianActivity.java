@@ -28,6 +28,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import java.util.ArrayList;
+import java.util.Date;
 
 import lu.fisch.canze.R;
 import lu.fisch.canze.actors.Field;
@@ -42,6 +43,11 @@ public class FlorianActivity extends CanzeActivity implements FieldListener {
     public static final String SID_RealSoC                          = "7bb.6103.192";
     public static final String SID_PreciseOdometer = "5d7.16"; //  (EVC)
 
+    long socTime;
+    long kmTime;
+    long startTime;
+    long resetTime;
+    long actualTime;
     double avEnergyMultiplicator = 0;
     double socOnCreate = 0;
     double actualSoc = 0;
@@ -87,6 +93,7 @@ public class FlorianActivity extends CanzeActivity implements FieldListener {
         addListener(SID_RealSoC);
         addListener(SID_AvEnergy);
         addListener(SID_PreciseOdometer);
+
     }
 
     private void removeListeners () {
@@ -129,34 +136,31 @@ public class FlorianActivity extends CanzeActivity implements FieldListener {
                     case SID_PreciseOdometer:
                         if(!Double.isNaN(field.getValue())) {
                             actualPreciseOdometer = field.getValue();
+                            kmTime = new Date().getTime();
                         }
                         if(!allInitialized) {
                             initialize();
                         } else {
-                            if ((actualPreciseOdometer - lastSavedPreciseOdometer) >= 0.1) {
+                            if (Math.abs(socTime - kmTime) < 1000) {
                                 TripState newTripState = new TripState(actualSoc, actualPreciseOdometer, actualPreciseOdometer - preciseOdometerOnCreate);
                                 tripStates.add(newTripState);
-                                updateKilometerInfo();
+                                updateInfoByDistance(1, (LinearLayout) findViewById(R.id.layout1Km), (TextView) findViewById(R.id.textUsedEnergyLast1km), (TextView) findViewById(R.id.textUsedEnergyLast1kmProjectedTo100km));
+                                updateInfoByDistance(2, (LinearLayout) findViewById(R.id.layout2Km), (TextView) findViewById(R.id.textUsedEnergyLast2km), (TextView) findViewById(R.id.textUsedEnergyLast2kmProjectedTo100km));
+                                updateInfoByDistance(3, (LinearLayout) findViewById(R.id.layout3Km), (TextView) findViewById(R.id.textUsedEnergyLast3km), (TextView) findViewById(R.id.textUsedEnergyLast3kmProjectedTo100km));
+                                updateInfoByIndex(tripStates.size() - 1, 0, false, (LinearLayout) findViewById(R.id.layoutStart), (TextView) findViewById(R.id.textUsedEnergySinceStart), (TextView) findViewById(R.id.textUsedEnergySinceStartProjectedTo100km), (TextView) findViewById(R.id.textDrivenDistance), (TextView) findViewById(R.id.textDrivenTime));
+                                updateInfoByIndex(tripStates.size() - 1, resetPointer, true, (LinearLayout) findViewById(R.id.layoutReset), (TextView) findViewById(R.id.textUsedEnergySinceReset), (TextView) findViewById(R.id.textUsedEnergySinceResetProjectedTo100km), (TextView) findViewById(R.id.textDrivenDistanceSinceReset), (TextView) findViewById(R.id.textDrivenTimeSinceReset));
                                 lastSavedPreciseOdometer = actualPreciseOdometer;
-                                //tv = (TextView) findViewById(R.id.textLastSavedPreciseOdometer);
-                                //tv.setText("" + lastSavedPreciseOdometer);
                             }
                         }
-                        //tv = (TextView) findViewById(R.id.textActualPreciseOdometer);
                         break;
                     case SID_RealSoC:
                         if(!Double.isNaN(field.getValue())) {
                             actualSoc = field.getValue();
+                            socTime = new Date().getTime();
                         }
                         if(!allInitialized) {
                             initialize();
-                        } else {
-                            if (lastKnownSoc == 0 || lastKnownSoc != actualSoc) {
-                                lastKnownSoc = actualSoc;
-                                updateDriveInfo();
-                            }
                         }
-                        //tv = (TextView) findViewById(R.id.textActualSoc);
                         break;
                     case SID_AvEnergy:
                         if(!Double.isNaN(field.getValue())) {
@@ -179,108 +183,104 @@ public class FlorianActivity extends CanzeActivity implements FieldListener {
 
     }
 
-    private void updateDriveInfo() {
-        TextView tv = null;
-        LinearLayout myLayout = null;
+        private void updateInfoByDistance(double distance, LinearLayout layoutToUpdate, TextView tvConsumption, TextView tvProjectedConsumption) {
+
+        TripState tripState = null;
+        TripState tripStateCompare = null;
         double usedEnergy;
-        double usedEnergyReset;
         double usedEnergyProjected;
-        double usedEnergyProjectedReset;
-        TripState tripState;
-        TripState tripStateCompare;
-        TripState tripStateReset;
+        int counter = 2;
+        boolean notFound = true;
 
-        if (tripStates.size() >= 1) {
+        tripState = tripStates.get(tripStates.size() - 1);
 
-            tripState = tripStates.get(tripStates.size() - 1); //der letzte
-            tripStateCompare = tripStates.get(0); // der erste
-            tripStateReset = tripStates.get(resetPointer);
+        while (notFound) {
+            tripStateCompare = tripStates.get(tripStates.size() - counter);
 
-            usedEnergy = calcUsedEnergy(tripStateCompare.getActualSoc(), tripState.getActualSoc());
-            tv = (TextView) findViewById(R.id.textUsedEnergySinceStart);
-            if (usedEnergy > 0) {
-                tv.setText("" + (Math.round(usedEnergy * 10.0) / 10.0) + " Wh");
+            if (tripState.getDrivenDistance() - tripStateCompare.getDrivenDistance() >= distance) {
+                notFound = false;
+                usedEnergy = calcUsedEnergy(tripStateCompare.getActualSoc(), tripState.getActualSoc());
+                usedEnergyProjected = calcProjectedEnergy(usedEnergy, distance);
+                if (usedEnergy > 0) {
+                    tvConsumption.setText("" + (Math.round(usedEnergy * 10.0) / 10.0) + " Wh");
+                }
+                if (usedEnergyProjected > 0 && usedEnergyProjected < 100) {
+                    tvProjectedConsumption.setText("" + (Math.round(usedEnergyProjected * 10.0) / 10.0) + " kWh");
+                    setConsumptionColor(layoutToUpdate, usedEnergyProjected);
+                }
+
+            } else if (counter == tripStates.size()) {
+                break;
+            } else {
+                counter++;
             }
-
-            usedEnergyReset = calcUsedEnergy(tripStateReset.getActualSoc(), tripState.getActualSoc());
-            tv = (TextView) findViewById(R.id.textUsedEnergySinceReset);
-            if (usedEnergyReset > 0) {
-                tv.setText("" + (Math.round(usedEnergyReset * 10.0) / 10.0) + " Wh");
-            }
-
-            tv = (TextView) findViewById(R.id.textDrivenDistance);
-            tv.setText("" + (Math.round(tripState.getDrivenDistance() * 10.0) / 10.0) + " km");
-
-            tv = (TextView) findViewById(R.id.textDrivenDistanceSinceReset);
-            tv.setText("" + (Math.round((tripState.getDrivenDistance() - tripStateReset.getDrivenDistance())  * 10.0) / 10.0) + " km");
-
-            usedEnergyProjected = calcProjectedEnergy(usedEnergy, tripState.getDrivenDistance());
-            tv = (TextView) findViewById(R.id.textUsedEnergySinceStartProjectedTo100km);
-            if (usedEnergyProjected > 0 && usedEnergyProjected < 100) {
-                tv.setText("" + (Math.round(usedEnergyProjected * 10.0) / 10.0) + " kWh");
-            }
-
-            usedEnergyProjectedReset = calcProjectedEnergy(usedEnergyReset, (tripState.getDrivenDistance() - tripStateReset.getDrivenDistance()));
-            tv = (TextView) findViewById(R.id.textUsedEnergySinceResetProjectedTo100km);
-            if (usedEnergyProjectedReset > 0 && usedEnergyProjectedReset < 100) {
-                tv.setText("" + (Math.round(usedEnergyProjectedReset * 10.0) / 10.0) + " kWh");
-            }
-
-            myLayout = (LinearLayout) findViewById(R.id.layoutStart);
-            setConsumptionColor(myLayout, usedEnergyProjected);
-
-            myLayout = (LinearLayout) findViewById(R.id.layoutReset);
-            setConsumptionColor(myLayout, usedEnergyProjectedReset);
-            }
+        }
 
     }
 
-    private void updateKilometerInfo() {
+    private void updateInfoByIndex(int tripIndex, int compareIndex, boolean sinceReset, LinearLayout layoutToUpdate, TextView tvConsumption, TextView tvProjectedConsumption, TextView tvDrivenDistance, TextView tvDrivenTime) {
 
-        LinearLayout myLayout = null;
-        TextView tv = null;
-        double usedEnergy;
-        double usedEnergyProjected;
         TripState tripState;
         TripState tripStateCompare;
+        double usedEnergy;
+        double usedEnergyProjected;
+        long timeDifference;
+        long diffSeconds;
+        long diffMinutes;
+        long diffHours;
 
-            if (tripStates.size() >= 11) {
-                tripState = tripStates.get(tripStates.size() - 1); //bei 11: index 10
-                tripStateCompare = tripStates.get(tripStates.size() - 11); //bei 11: index 0
-                usedEnergy = calcUsedEnergy(tripStateCompare.getActualSoc(), tripState.getActualSoc());
-                usedEnergyProjected = calcProjectedEnergy(usedEnergy, 1);
-                tv = (TextView) findViewById(R.id.textUsedEnergyLast1km);
-                tv.setText("" + (Math.round(usedEnergy * 10.0) / 10.0) + " Wh");
-                tv = (TextView) findViewById(R.id.textUsedEnergyLast1kmProjectedTo100km);
-                tv.setText("" + (Math.round(usedEnergyProjected * 10.0) / 10.0) + " kWh");
-                myLayout = (LinearLayout) findViewById(R.id.layout1Km);
-                setConsumptionColor(myLayout, usedEnergyProjected);
-            }
-            if (tripStates.size() >= 21) {
-                tripState = tripStates.get(tripStates.size() - 1); //bei 21: index 20
-                tripStateCompare = tripStates.get(tripStates.size() - 21); //bei 21: index 0
-                usedEnergy = calcUsedEnergy(tripStateCompare.getActualSoc(), tripState.getActualSoc());
-                usedEnergyProjected = calcProjectedEnergy(usedEnergy, 2);
-                tv = (TextView) findViewById(R.id.textUsedEnergyLast2km);
-                tv.setText("" + (Math.round(usedEnergy * 10.0) / 10.0) + " Wh");
-                tv = (TextView) findViewById(R.id.textUsedEnergyLast2kmProjectedTo100km);
-                tv.setText("" + (Math.round(usedEnergyProjected * 10.0) / 10.0) + " kWh");
-                myLayout = (LinearLayout) findViewById(R.id.layout2Km);
-                setConsumptionColor(myLayout, usedEnergyProjected);
-            }
-            if (tripStates.size() >= 31) {
-                tripState = tripStates.get(tripStates.size() - 1);
-                tripStateCompare = tripStates.get(tripStates.size() - 31);
-                usedEnergy = calcUsedEnergy(tripStateCompare.getActualSoc(), tripState.getActualSoc());
-                usedEnergyProjected = calcProjectedEnergy(usedEnergy, 3);
-                tv = (TextView) findViewById(R.id.textUsedEnergyLast3km);
-                tv.setText("" + (Math.round(usedEnergy * 10.0) / 10.0) + " Wh");
-                tv = (TextView) findViewById(R.id.textUsedEnergyLast3kmProjectedTo100km);
-                tv.setText("" + (Math.round(usedEnergyProjected * 10.0) / 10.0) + " kWh");
-                myLayout = (LinearLayout) findViewById(R.id.layout3Km);
-                setConsumptionColor(myLayout, usedEnergyProjected);
+        if (tripStates.size() >= (tripIndex + 1) && tripStates.size() >= (compareIndex + 1)) {
+            tripState = tripStates.get(tripIndex);
+            tripStateCompare = tripStates.get(compareIndex);
+
+            usedEnergy = calcUsedEnergy(tripStateCompare.getActualSoc(), tripState.getActualSoc());
+
+            actualTime = new Date().getTime();
+
+            if (sinceReset) {
+                usedEnergyProjected = calcProjectedEnergy(usedEnergy, tripState.getDrivenDistance() - tripStates.get(resetPointer).getDrivenDistance());
+                timeDifference = actualTime - resetTime;
+            } else {
+                usedEnergyProjected = calcProjectedEnergy(usedEnergy, tripState.getDrivenDistance());
+                timeDifference = actualTime - startTime;
             }
 
+            diffSeconds = timeDifference / 1000 % 60;
+            diffMinutes = timeDifference / (60 * 1000) % 60;
+            diffHours = timeDifference / (60 * 60 * 1000) % 60;
+
+            if (diffHours != 0) {
+                tvDrivenTime.setText("" + String.format("%02d", diffHours) + ":" + String.format("%02d", diffMinutes) + ":" + String.format("%02d", diffSeconds));
+            } else {
+                tvDrivenTime.setText("" + String.format("%02d", diffMinutes) + ":" + String.format("%02d", diffSeconds));
+            }
+
+            if (usedEnergy > 0) {
+                tvConsumption.setText("" + (Math.round(usedEnergy * 10.0) / 10.0) + " Wh");
+            }
+            if (usedEnergyProjected > 0 && usedEnergyProjected < 100) {
+                tvProjectedConsumption.setText("" + (Math.round(usedEnergyProjected * 10.0) / 10.0) + " kWh");
+                setConsumptionColor(layoutToUpdate, usedEnergyProjected);
+            }
+
+            if (tvDrivenDistance != null) {
+                if (sinceReset) {
+                    tvDrivenDistance.setText("" + (Math.round((tripState.getDrivenDistance() - tripStates.get(resetPointer).getDrivenDistance()) * 10.0) / 10.0) + " km");
+                } else {
+                    tvDrivenDistance.setText("" + (Math.round(tripState.getDrivenDistance() * 10.0) / 10.0) + " km");
+                }
+            }
+        }
+    }
+
+    private double calcUsedEnergy(double earlierSoc, double laterSoc) {
+        double usedEnergy = ((earlierSoc - laterSoc) * avEnergyMultiplicator) * 1000;
+        return usedEnergy;
+    }
+
+    private double calcProjectedEnergy(double usedEnergy, double drivenDistance) {
+        double projectedEnergy = usedEnergy / (drivenDistance * 10);
+        return  projectedEnergy;
     }
 
     private void setConsumptionColor(LinearLayout myLayout, double usedEnergyProjected) {
@@ -301,36 +301,24 @@ public class FlorianActivity extends CanzeActivity implements FieldListener {
         myLayout.setBackgroundColor(Color.rgb(red, green, 0));
     }
 
-    private double calcUsedEnergy(double earlierSoc, double laterSoc) {
-        double usedEnergy = ((earlierSoc - laterSoc) * avEnergyMultiplicator) * 1000;
-        return usedEnergy;
-    }
-
-    private double calcProjectedEnergy(double usedEnergy, double drivenDistance) {
-        double projectedEnergy = usedEnergy / (drivenDistance * 10);
-        return  projectedEnergy;
-    }
-
     private void initialize() {
 
         TextView tv = null;
 
         if (actualPreciseOdometer != 0) {
             preciseOdometerOnCreate = actualPreciseOdometer;
-            //tv = (TextView) findViewById(R.id.textPreciseOdometerOnCreate);
-            //tv.setText("" + preciseOdometerOnCreate);
             lastSavedPreciseOdometer = actualPreciseOdometer;
-            //tv = (TextView) findViewById(R.id.textLastSavedPreciseOdometer);
-            //tv.setText("" + lastSavedPreciseOdometer);
+
             if (actualSoc != 0) {
                 socOnCreate = actualSoc;
-                //tv = (TextView) findViewById(R.id.textSocOnCreate);
-                //tv.setText("" + (Math.round(socOnCreate * 10.0) / 10.0));
+
                 if (actualAvEnergy != 0) {
                     avEnergyOnCreate = actualAvEnergy;
                     avEnergyMultiplicator = avEnergyOnCreate / socOnCreate;
                     TripState newTripState = new TripState(actualSoc, actualPreciseOdometer, 0);
                     tripStates.add(newTripState);
+                    startTime = new Date().getTime();
+                    resetTime = new Date().getTime();
                     allInitialized = true;
                 }
             }
@@ -352,11 +340,14 @@ public class FlorianActivity extends CanzeActivity implements FieldListener {
 
                     if (tripStates.size() >= 1) {
                         resetPointer = tripStates.size() - 1;
+                        resetTime = new Date().getTime();
                         tv = (TextView) findViewById(R.id.textUsedEnergySinceReset);
                         tv.setText("-");
                         tv = (TextView) findViewById(R.id.textDrivenDistanceSinceReset);
                         tv.setText("-");
                         tv = (TextView) findViewById(R.id.textUsedEnergySinceResetProjectedTo100km);
+                        tv.setText("-");
+                        tv = (TextView) findViewById(R.id.textDrivenTimeSinceReset);
                         tv.setText("-");
                         myLayout.setBackgroundColor(Color.rgb(138, 138, 138));
                     }
